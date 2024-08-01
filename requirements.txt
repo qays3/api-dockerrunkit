@@ -1,0 +1,9 @@
+fastapi
+fastapi.security.api_key
+urllib.parse
+hashlib
+subprocess
+re
+os
+slowapi
+slowapi.util
