@@ -15,7 +15,7 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 
 
-STATIC_API_KEY = os.getenv("STATIC_API_KEY", "your_secret_key_here")
+STATIC_API_KEY = os.getenv("STATIC_API_KEY", "4z9KNy6]vTRnzVD#;:Nn^I'S3]B'}{h%")
 hashed_static_api_key = sha384(STATIC_API_KEY.encode()).hexdigest()
 
 def find_unused_port():
