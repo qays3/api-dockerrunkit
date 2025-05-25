@@ -22,21 +22,30 @@ logging.basicConfig(
 active_ports = set()
 lock = threading.Lock()
 
-STATIC_API_KEY = os.getenv("STATIC_API_KEY", "4z9KNy6]vTRnzVD#;:Nn^I'S3]B'}{h%")
+STATIC_API_KEY = os.getenv("STATIC_API_KEY", "")
 hashed_static_api_key = sha384(STATIC_API_KEY.encode()).hexdigest()
 
 def log_message(message: str):
     logging.info(message)
 
+@app.middleware("http")
+async def log_ip_middleware(request: Request, call_next):
+    client_ip = request.client.host
+    logging.info(f"Request from IP: {client_ip} to {request.url.path}")
+    response = await call_next(request)
+    return response
+
 def is_port_in_use(port: int):
-    result = subprocess.run(f"docker ps --format '{{{{.Ports}}}}' | grep -oP '\\d+(?=->)'", shell=True, capture_output=True, text=True)
+    result = subprocess.run(
+        f"docker ps --format '{{{{.Ports}}}}' | grep -oP '\\d+(?=->)'",
+        shell=True, capture_output=True, text=True
+    )
     used_ports = result.stdout.strip().split("\n") if result.stdout else []
     return str(port) in used_ports
 
 def find_unused_port():
     start_port = 40000
     end_port = 59000
-
     with lock:
         for port in range(start_port, end_port):
             if port not in active_ports and not is_port_in_use(port):
