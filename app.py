@@ -28,9 +28,20 @@ hashed_static_api_key = sha384(STATIC_API_KEY.encode()).hexdigest()
 def log_message(message: str):
     logging.info(message)
 
+def get_client_ip(request: Request) -> str:
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    x_real_ip = request.headers.get("x-real-ip")
+
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    elif x_real_ip:
+        return x_real_ip
+    else:
+        return request.client.host
+
 @app.middleware("http")
 async def log_ip_middleware(request: Request, call_next):
-    client_ip = request.client.host
+    client_ip = get_client_ip(request)
     logging.info(f"Request from IP: {client_ip} to {request.url.path}")
     response = await call_next(request)
     return response
@@ -64,7 +75,7 @@ def confirm_port_is_available(port: int, retries: int = 5, delay: int = 1):
 def run_container(decoded_command, unused_port):
     decoded_command = re.sub(r'-p (\d+):', f'-p {unused_port}:', decoded_command)
     try:
-        subprocess.Popen(["./run_and_stop.sh", decoded_command])
+        subprocess.Popen(["bash", "run_and_stop.sh", decoded_command])
         log_message(f"Container started with command: {decoded_command} on port {unused_port}")
     except Exception as e:
         cleanup_port(unused_port)
@@ -80,7 +91,7 @@ def cleanup_port(unused_port):
 @app.get("/runcmd/")
 async def run_command(command: str, api_key: str = Query(...), request: Request = None):
     if api_key != hashed_static_api_key:
-        log_message(f"Unauthorized API key attempt.")
+
         raise HTTPException(status_code=401, detail="Invalid API key.")
 
     decoded_command = unquote(command)
